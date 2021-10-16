@@ -6,13 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"gips/validators/ips"
+	"io"
 	"os"
 )
 
 func getXBytes(buf *bufio.Reader, n int) []byte {
 	data := make([]byte, n)
 
-	read, err := buf.Read(data)
+	read, err := io.ReadFull(buf, data)
 	if err != nil {
 		panic(err)
 	}
@@ -24,14 +25,14 @@ func getXBytes(buf *bufio.Reader, n int) []byte {
 	return data
 }
 
-func parseXBytes(buf *bufio.Reader, n int) uint64 {
+func parseXBytes(buf *bufio.Reader, n int) uint32 {
 	parsed := getXBytes(buf, n)
 
-	for i := 0; i < 8-n; i++ {
+	if len(parsed) == 3 {
 		parsed = append(parsed, 0x0)
 	}
 
-	return binary.BigEndian.Uint64(parsed)
+	return uint32(binary.BigEndian.Uint16(parsed))
 }
 
 func atEOF(buf *bufio.Reader) bool {
@@ -67,15 +68,19 @@ func FromFile(fileName string) (res []Record) {
 
 	for !atEOF(buf) {
 		res = append(res, parseRecord(buf))
-		break
 	}
 
 	return
 }
 
 func parseRecord(buf *bufio.Reader) (res Record) {
-	res.Offset = uint32(parseXBytes(buf, 3))
+	res.Offset = parseXBytes(buf, 3)
 	res.Size = uint16(parseXBytes(buf, 2))
+
+	// Sometimes a 0-length record is just a 0-length record
+	if atEOF(buf) {
+		return
+	}
 
 	if res.Size == 0 {
 		res.IsRLE = true
