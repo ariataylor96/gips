@@ -28,7 +28,7 @@ func getXBytes(buf *bufio.Reader, n int) []byte {
 func parseXBytes(buf *bufio.Reader, n int) uint32 {
 	parsed := getXBytes(buf, n)
 
-	if len(parsed) == 3 {
+	for len(parsed) < 4 {
 		parsed = append(parsed, 0x0)
 	}
 
@@ -76,11 +76,6 @@ func FromFile(fileName string) (res []Record) {
 func parseRecord(buf *bufio.Reader) (res Record) {
 	res.Offset = parseXBytes(buf, 3)
 	res.Size = uint16(parseXBytes(buf, 2))
-
-	// Sometimes a 0-length record is just a 0-length record
-	if atEOF(buf) {
-		return
-	}
 
 	if res.Size == 0 {
 		res.IsRLE = true

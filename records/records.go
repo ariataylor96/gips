@@ -26,3 +26,9 @@ func (r *Record) RLEValue() []byte {
 
 	return res
 }
+
+func (r *Record) Apply(data *[]byte) {
+	for idx, val := range r.Value() {
+		(*data)[r.Offset+uint32(idx)] = val
+	}
+}
